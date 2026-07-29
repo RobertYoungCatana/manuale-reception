@@ -164,13 +164,17 @@
 
   <!-- Filtro Istantaneo per la Rubrica -->
   <script>
-    document.getElementById('rubricaSearch').addEventListener('input', function(e) {
-      const q = e.target.value.toLowerCase().trim();
-      document.querySelectorAll('.widget-content .contact-card').forEach(card => {
-        const text = card.getAttribute('data-search').toLowerCase();
-        card.style.display = text.includes(q) ? 'flex' : 'none';
+    (function(){
+      const el = document.getElementById('rubricaSearch') || document.getElementById('searchContact');
+      if (!el) return;
+      el.addEventListener('input', function(e) {
+        const q = e.target.value.toLowerCase().trim();
+        document.querySelectorAll('.widget-content .contact-card').forEach(card => {
+          const text = (card.getAttribute('data-search') || '').toLowerCase();
+          card.style.display = text.includes(q) ? 'flex' : 'none';
+        });
       });
-    });
+    })();
   </script>
 
   <!-- === MODALE PER AGGIUNGERE/MODIFICARE CONTATTI === -->

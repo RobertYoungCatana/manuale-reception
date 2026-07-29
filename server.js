@@ -72,7 +72,10 @@ const upload = multer({
   storage,
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (file.mimetype !== 'application/pdf') return cb(new Error('Solo file PDF sono ammessi'));
+    const allowed = ['application/pdf', 'application/octet-stream'];
+    if (!allowed.includes(file.mimetype) && !file.originalname.toLowerCase().endsWith('.pdf')) {
+      return cb(new Error('Solo file PDF sono ammessi'));
+    }
     cb(null, true);
   }
 });
@@ -80,10 +83,17 @@ const upload = multer({
 console.log(`Upload mode: ${useCloudinary ? 'cloudinary' : 'local uploads folder'}`);
 
 function readDb() {
-  return JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'db.json'), 'utf-8'));
+}
+function readDb() {
+  const dbDir = path.join(__dirname, 'data');
+  const dbPath = path.join(dbDir, 'db.json');
+  if (!fs.existsSync(dbPath)) return [];
+  return JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
 }
 function writeDb(data) {
-  fs.writeFileSync(path.join(__dirname, 'data', 'db.json'), JSON.stringify(data, null, 2));
+  const dbDir = path.join(__dirname, 'data');
+  if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+  fs.writeFileSync(path.join(dbDir, 'db.json'), JSON.stringify(data, null, 2));
 }
 
 function requireAdmin(req, res, next) {
