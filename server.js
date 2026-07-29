@@ -37,13 +37,36 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.json());
 app.use(cookieParser());
 
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: 'manuali_hotel',
-    resource_type: 'auto'
-  }
-});
+const cloudinaryConfig = {
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+};
+const useCloudinary = cloudinaryConfig.cloud_name && cloudinaryConfig.api_key && cloudinaryConfig.api_secret;
+
+if (useCloudinary) {
+  cloudinary.config(cloudinaryConfig);
+}
+
+if (!fs.existsSync(path.join(__dirname, 'uploads'))) {
+  fs.mkdirSync(path.join(__dirname, 'uploads'), { recursive: true });
+}
+
+const storage = useCloudinary
+  ? new CloudinaryStorage({
+      cloudinary,
+      params: {
+        folder: 'manuali_hotel',
+        resource_type: 'auto'
+      }
+    })
+  : multer.diskStorage({
+      destination: (req, file, cb) => cb(null, path.join(__dirname, 'uploads')),
+      filename: (req, file, cb) => {
+        const safeName = `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+        cb(null, safeName);
+      }
+    });
 
 const upload = multer({
   storage,
@@ -53,6 +76,8 @@ const upload = multer({
     cb(null, true);
   }
 });
+
+console.log(`Upload mode: ${useCloudinary ? 'cloudinary' : 'local uploads folder'}`);
 
 function readDb() {
   return JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'db.json'), 'utf-8'));
@@ -150,12 +175,15 @@ app.get('/api/procedures/pdf/:filename', (req, res) => {
   }
 });
 
-app.post('/api/procedures', upload.single('pdf'), async (req, res) => {
+app.post('/api/procedures', upload.fields([{ name: 'pdf', maxCount: 1 }, { name: 'file', maxCount: 1 }]), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'Nessun file ricevuto' });
+    const uploadedFile = (req.files?.pdf && req.files.pdf[0]) || (req.files?.file && req.files.file[0]);
+    if (!uploadedFile) return res.status(400).json({ error: 'Nessun file ricevuto' });
 
-    const pdfUrl = req.file?.path || null;
-    const title = (req.body.title || req.file.originalname.replace(/\.pdf$/i, '')).trim();
+    const pdfUrl = uploadedFile.path && uploadedFile.path.startsWith('http')
+      ? uploadedFile.path
+      : `/uploads/${uploadedFile.filename}`;
+    const title = (req.body.title || uploadedFile.originalname.replace(/\.pdf$/i, '')).trim();
 
     let text = '';
     let keywords = [];
@@ -182,7 +210,8 @@ app.post('/api/procedures', upload.single('pdf'), async (req, res) => {
       keywords,
       text,
       pdfUrl,
-      originalName: req.file.originalname,
+      filename: uploadedFile.filename,
+      originalName: uploadedFile.originalname,
       uploadedAt: Date.now()
     };
 
