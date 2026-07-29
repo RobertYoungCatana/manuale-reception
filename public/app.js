@@ -423,7 +423,7 @@ if (uploadForm) {
     const fd = new FormData();
     fd.append('title', title);
     fd.append('keywords', keywords);
-    fd.append('file', fileEl.files[0]);
+    fd.append('pdf', fileEl.files[0]);
 
     try {
       const res = await fetch('/api/procedures', { method: 'POST', body: fd });
