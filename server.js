@@ -83,8 +83,6 @@ const upload = multer({
 console.log(`Upload mode: ${useCloudinary ? 'cloudinary' : 'local uploads folder'}`);
 
 function readDb() {
-}
-function readDb() {
   const dbDir = path.join(__dirname, 'data');
   const dbPath = path.join(dbDir, 'db.json');
   if (!fs.existsSync(dbPath)) return [];
@@ -185,43 +183,72 @@ app.get('/api/procedures/:id/pdf', async (req, res) => {
   if (!proc) return res.status(404).json({ error: 'Procedura non trovata' });
   console.log(`/api/procedures/${req.params.id}/pdf requested, proc:`, { id: proc.id, pdfUrl: proc.pdfUrl, filename: proc.filename });
 
-  // If pdfUrl is a remote URL hosted on Cloudinary, try to resolve a secure URL via API and redirect.
-  if (proc.pdfUrl && (proc.pdfUrl.startsWith('http://') || proc.pdfUrl.startsWith('https://'))) {
-    try {
-      const isCloudinary = proc.pdfUrl.includes('res.cloudinary.com') || (proc.filename && proc.filename.includes('cloudinary'));
-      if (isCloudinary && proc.filename) {
-        // Try to generate a signed URL first (works for private resources)
-        try {
-          const signed = cloudinary.url
-            ? cloudinary.url(proc.filename, { resource_type: 'raw', sign_url: true, secure: true })
-            : null;
-          if (signed) return res.redirect(signed);
-        } catch (err) {
-          console.warn('Cloudinary signed URL failed:', err.message);
-        }
+  const localFilePath = proc.filename ? path.join(__dirname, 'uploads', proc.filename) : null;
+  const localPdfPath = proc.pdfUrl && proc.pdfUrl.startsWith('/uploads/') ? path.join(__dirname, proc.pdfUrl.replace(/^\//, '')) : null;
 
-        if (typeof cloudinary.api !== 'undefined') {
-          try {
-            // try resource lookup with common resource types
-            let info;
-            try {
-              info = await cloudinary.api.resource(proc.filename, { resource_type: 'raw' });
-            } catch (e) {
-              info = await cloudinary.api.resource(proc.filename, { resource_type: 'auto' });
-            }
-            if (info && (info.secure_url || info.url)) {
-              return res.redirect(info.secure_url || info.url);
-            }
-          } catch (err) {
-            console.warn('Cloudinary API resource lookup failed:', err.message);
-            // fallthrough to redirect to stored pdfUrl
-          }
+  if (localFilePath && fs.existsSync(localFilePath)) {
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${proc.originalName || proc.filename}"`);
+    return res.sendFile(localFilePath);
+  }
+
+  if (localPdfPath && fs.existsSync(localPdfPath)) {
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${proc.originalName || path.basename(localPdfPath)}"`);
+    return res.sendFile(localPdfPath);
+  }
+
+  // If pdfUrl is a remote URL, fetch and proxy it to the browser.
+  if (proc.pdfUrl && (proc.pdfUrl.startsWith('http://') || proc.pdfUrl.startsWith('https://'))) {
+    let remoteUrl = proc.pdfUrl;
+    let fetchResponse;
+
+    const getSignedCloudinaryUrl = () => {
+      try {
+        return cloudinary.url(proc.filename, { resource_type: 'auto', sign_url: true, secure: true });
+      } catch (err) {
+        console.warn('Cloudinary signed URL failed:', err.message);
+        return null;
+      }
+    };
+
+    try {
+      fetchResponse = await fetch(remoteUrl);
+      if (!fetchResponse.ok && proc.filename && proc.pdfUrl.includes('res.cloudinary.com')) {
+        const signed = getSignedCloudinaryUrl();
+        if (signed) {
+          remoteUrl = signed;
+          fetchResponse = await fetch(remoteUrl);
         }
       }
 
-      return res.redirect(proc.pdfUrl);
+      if (!fetchResponse.ok && proc.filename && typeof cloudinary.api !== 'undefined') {
+        try {
+          const info = await cloudinary.api.resource(proc.filename, { resource_type: 'auto' });
+          const fallbackUrl = info?.secure_url || info?.url;
+          if (fallbackUrl) {
+            remoteUrl = fallbackUrl;
+            fetchResponse = await fetch(remoteUrl);
+          }
+        } catch (err) {
+          console.warn('Cloudinary API resource lookup failed:', err.message);
+        }
+      }
+
+      if (!fetchResponse.ok) {
+        console.error('Remote PDF fetch failed:', remoteUrl, fetchResponse.status, fetchResponse.statusText);
+        return res.status(fetchResponse.status).json({ error: 'Impossibile recuperare il PDF remoto' });
+      }
+
+      res.status(fetchResponse.status);
+      const contentType = fetchResponse.headers.get('content-type') || 'application/pdf';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `inline; filename="${proc.originalName || path.basename(remoteUrl)}"`);
+      const contentLength = fetchResponse.headers.get('content-length');
+      if (contentLength) res.setHeader('Content-Length', contentLength);
+      return fetchResponse.body.pipe(res);
     } catch (err) {
-      console.error('Error redirecting to remote pdfUrl:', err);
+      console.error('Error proxying remote PDF:', err);
       return res.status(502).json({ error: 'Impossibile recuperare il PDF remoto' });
     }
   }
@@ -283,19 +310,25 @@ app.post('/api/procedures', upload.fields([{ name: 'pdf', maxCount: 1 }, { name:
       return res.status(400).json({ error: 'Nessun file ricevuto. Assicurati di selezionare un PDF valido.' });
     }
 
-    const pdfUrl = uploadedFile.path && uploadedFile.path.startsWith('http')
-      ? uploadedFile.path
-      : `/uploads/${uploadedFile.filename}`;
+    const id = nanoid(8);
+    const localFilename = uploadedFile.path && uploadedFile.path.startsWith('http')
+      ? `${id}.pdf`
+      : uploadedFile.filename;
+    const localFilePath = path.join(__dirname, 'uploads', localFilename);
+    const remoteUrl = uploadedFile.path && uploadedFile.path.startsWith('http') ? uploadedFile.path : null;
+    const cloudinaryId = remoteUrl ? uploadedFile.filename : null;
+    const localUrl = `/uploads/${localFilename}`;
     const title = (req.body.title || uploadedFile.originalname.replace(/\.pdf$/i, '')).trim();
 
     let text = '';
     let keywords = [];
 
     try {
-      if (uploadedFile.path && uploadedFile.path.startsWith('http')) {
-        const response = await fetch(uploadedFile.path);
+      if (remoteUrl) {
+        const response = await fetch(remoteUrl);
         if (response.ok) {
           const buffer = Buffer.from(await response.arrayBuffer());
+          fs.writeFileSync(localFilePath, buffer);
           const parser = new PDFParse({ data: buffer });
           const parsed = await parser.getText();
           await parser.destroy();
@@ -304,6 +337,9 @@ app.post('/api/procedures', upload.fields([{ name: 'pdf', maxCount: 1 }, { name:
         }
       } else if (uploadedFile.path) {
         const buffer = fs.readFileSync(uploadedFile.path);
+        if (!fs.existsSync(localFilePath)) {
+          fs.copyFileSync(uploadedFile.path, localFilePath);
+        }
         const parser = new PDFParse({ data: buffer });
         const parsed = await parser.getText();
         await parser.destroy();
@@ -315,14 +351,16 @@ app.post('/api/procedures', upload.fields([{ name: 'pdf', maxCount: 1 }, { name:
     }
 
     const procedure = {
-      id: nanoid(8),
+      id,
       title,
       keywords,
       text,
-      pdfUrl,
-      filename: uploadedFile.filename,
+      pdfUrl: localUrl,
+      filename: localFilename,
       originalName: uploadedFile.originalname,
-      uploadedAt: Date.now()
+      uploadedAt: Date.now(),
+      cloudinaryId,
+      cloudinaryUrl: remoteUrl
     };
 
     const db = readDb();

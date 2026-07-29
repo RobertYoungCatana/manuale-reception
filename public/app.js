@@ -197,7 +197,7 @@ function openProcedure(id) {
   if (typeof renderProcedures === 'function') renderProcedures();
 
   const apiPdfUrl = `/api/procedures/${proc.id}/pdf`;
-  const filename = (proc.pdfUrl || proc.filepath || proc.path || proc.file || proc.filename || '').split('/').pop().split('\\').pop();
+  const filename = (proc.filename || proc.pdfUrl || proc.filepath || proc.path || proc.file || '').split('/').pop().split('\\').pop();
 
   if (proc.id) {
     window.open(apiPdfUrl, '_blank');
