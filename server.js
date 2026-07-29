@@ -13,12 +13,24 @@ const { extractKeywords } = require('./keywords');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ? process.env.ADMIN_PASSWORD.trim() : 'changeme';
+
+function loadEnvVar(name) {
+  let value = process.env[name];
+  if (!value) return undefined;
+  value = value.trim();
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    value = value.slice(1, -1).trim();
+  }
+  return value;
+}
+
+const ADMIN_PASSWORD = loadEnvVar('ADMIN_PASSWORD') || 'changeme';
 const SESSION_TOKEN = crypto.randomBytes(24).toString('hex');
 
 if (!process.env.ADMIN_PASSWORD) {
   console.warn('WARNING: ADMIN_PASSWORD non impostata, viene utilizzata la password di default "changeme". Imposta ADMIN_PASSWORD nel file .env o nelle variabili di ambiente.');
 }
+console.log(`ADMIN_PASSWORD loaded: ${process.env.ADMIN_PASSWORD ? 'yes' : 'no'} | using default: ${ADMIN_PASSWORD === 'changeme'}`);
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
