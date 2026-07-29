@@ -165,21 +165,33 @@ app.get('/api/procedures/:id/pdf', async (req, res) => {
   if (proc.pdfUrl && (proc.pdfUrl.startsWith('http://') || proc.pdfUrl.startsWith('https://'))) {
     try {
       const isCloudinary = proc.pdfUrl.includes('res.cloudinary.com') || (proc.filename && proc.filename.includes('cloudinary'));
-      if (isCloudinary && typeof cloudinary.api !== 'undefined' && proc.filename) {
+      if (isCloudinary && proc.filename) {
+        // Try to generate a signed URL first (works for private resources)
         try {
-          // try resource lookup with common resource types
-          let info;
-          try {
-            info = await cloudinary.api.resource(proc.filename, { resource_type: 'raw' });
-          } catch (e) {
-            info = await cloudinary.api.resource(proc.filename, { resource_type: 'auto' });
-          }
-          if (info && (info.secure_url || info.url)) {
-            return res.redirect(info.secure_url || info.url);
-          }
+          const signed = cloudinary.url
+            ? cloudinary.url(proc.filename, { resource_type: 'raw', sign_url: true, secure: true })
+            : null;
+          if (signed) return res.redirect(signed);
         } catch (err) {
-          console.warn('Cloudinary API resource lookup failed:', err.message);
-          // fallthrough to redirect to stored pdfUrl
+          console.warn('Cloudinary signed URL failed:', err.message);
+        }
+
+        if (typeof cloudinary.api !== 'undefined') {
+          try {
+            // try resource lookup with common resource types
+            let info;
+            try {
+              info = await cloudinary.api.resource(proc.filename, { resource_type: 'raw' });
+            } catch (e) {
+              info = await cloudinary.api.resource(proc.filename, { resource_type: 'auto' });
+            }
+            if (info && (info.secure_url || info.url)) {
+              return res.redirect(info.secure_url || info.url);
+            }
+          } catch (err) {
+            console.warn('Cloudinary API resource lookup failed:', err.message);
+            // fallthrough to redirect to stored pdfUrl
+          }
         }
       }
 
