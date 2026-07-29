@@ -155,7 +155,7 @@ app.get('/api/search', (req, res) => {
   res.json(scored.map(x => { const { text, ...rest } = x.proc; return rest; }));
 });
 
-app.get('/api/procedures/:id/pdf', (req, res) => {
+app.get('/api/procedures/:id/pdf', async (req, res) => {
   const db = readDb();
   const proc = db.find(p => p.id === req.params.id);
   if (!proc) return res.status(404).json({ error: 'Procedura non trovata' });
