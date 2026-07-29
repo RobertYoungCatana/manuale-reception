@@ -13,14 +13,12 @@ const { extractKeywords } = require('./keywords');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'changeme';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ? process.env.ADMIN_PASSWORD.trim() : 'changeme';
 const SESSION_TOKEN = crypto.randomBytes(24).toString('hex');
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
+if (!process.env.ADMIN_PASSWORD) {
+  console.warn('WARNING: ADMIN_PASSWORD non impostata, viene utilizzata la password di default "changeme". Imposta ADMIN_PASSWORD nel file .env o nelle variabili di ambiente.');
+}
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -61,7 +59,7 @@ app.get('/api/ping', (req, res) => {
 });
 
 app.post('/api/admin/login', (req, res) => {
-  const { password } = req.body;
+  const password = String(req.body.password || '').trim();
   if (password === ADMIN_PASSWORD) {
     res.cookie('admin_session', SESSION_TOKEN, {
       httpOnly: true,
