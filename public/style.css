@@ -1,0 +1,1170 @@
+/* ==========================================================================
+   RESET & VARIABILI BENTO DASHBOARD (EXTRA GLASS EFFECT)
+   ========================================================================== */
+:root {
+  --accent-orange: #E0714A;
+  --accent-orange-hover: #C16140;
+  
+  --text-dark: #123029;
+  --text-muted: #546A65;
+  --tertiary-green: #2F9078;
+  --blue-accent: #2563eb;
+  
+  /* Glassmorphic Ultra Specular Style */
+  --glass-bg: rgba(254, 254, 254, 0.55);
+  --glass-border: 0.8px solid rgba(18, 48, 41, 0.15);
+  
+  /* Sistema Ombre Profonde Inset Multi-Layer */
+  --glass-shadow: 
+    rgba(255, 255, 255, 0.6) 0px 0px 0px 0.5px inset,
+    rgba(9, 44, 36, 0.25) 0px -2px 3px 0px inset,
+    rgba(9, 44, 36, 0.12) 0px 1px 3px 0px,
+    rgba(9, 44, 36, 0.35) 0px 14px 26px -14px inset;
+
+  --radius-card: 24px;
+  --radius-pill: 50px;
+  --font-mono: 'Inter', sans-serif;
+  --font-sans: 'Inter', sans-serif;
+}
+
+/*
+==========================================================================
+   APPLICAZIONE DEL VETRO AI PANNELLI
+========================================================================== 
+*/
+.card-top-left,
+.card-main-bottom,
+.card-right-widget,
+.modal {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  border: var(--glass-border) !important;
+  box-shadow: var(--glass-shadow) !important;
+  position: relative;
+}
+
+/* Bagliore interno superiore per enfatizzare il bordo di vetro riflesso */
+.card-top-left::before,
+.card-main-bottom::before,
+.card-right-widget::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    180deg, 
+    rgba(255, 255, 255, 0.8) 0%, 
+    rgba(255, 255, 255, 0) 40%, 
+    rgba(18, 48, 41, 0.1) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Card interne dei PDF (effetto micro-vetro) */
+.item-card, .procedure-card, .card {
+  background: rgba(255, 255, 255, 0.45) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 0.8px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 
+    rgba(255, 255, 255, 0.5) 0px 1px 0px 0px inset,
+    rgba(9, 44, 36, 0.08) 0px 10px 20px -10px inset,
+    0 4px 12px rgba(18, 48, 41, 0.04) !important;
+}
+
+.item-card:hover, .procedure-card:hover {
+  background: rgba(255, 255, 255, 0.75) !important;
+  box-shadow: 
+    rgba(255, 255, 255, 0.8) 0px 1px 0px 0px inset,
+    rgba(9, 44, 36, 0.12) 0px 12px 24px -8px inset,
+    0 8px 20px rgba(18, 48, 41, 0.08) !important;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  /* Blu pastello morbido e desaturato per far risaltare il vetro */
+  background-color: #dce7f0; 
+  color: var(--text-dark);
+  font-family: var(--font-sans);
+  font-size: 18px; /* body-md token */
+  font-weight: 400;
+  line-height: 26.64px; /* body-md token */
+  letter-spacing: -0.022em;
+  min-height: 100vh;
+  width: 100vw;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Canvas Sfondo Animato */
+#bgCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   PRELOADER SCREEN (YOUNG CATANA)
+   ========================================================================== */
+#preloader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #1a1a1a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.6s;
+}
+
+#preloader.fade-out {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loader-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.2rem;
+  max-width: 80%;
+}
+
+.loader-logo {
+  max-width: 320px;
+  width: 80%;
+  height: auto;
+  opacity: 0;
+  transform: scale(0.94);
+  animation: logoAppear 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.15));
+}
+
+@keyframes logoAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+    filter: drop-shadow(0 0 0px rgba(255, 255, 255, 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.15));
+  }
+}
+
+.loader-slogan {
+  color: #a3a3a3;
+  font-family: monospace, sans-serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.25em;
+  margin: 0;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: sloganFade 0.8s ease 0.6s forwards;
+}
+
+@keyframes sloganFade {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.loader-bar-container {
+  width: 140px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.loader-bar-fill {
+  width: 0%;
+  height: 100%;
+  background: #ffffff;
+  box-shadow: 0 0 8px #ffffff;
+  border-radius: 10px;
+  animation: loadProgress 1.8s ease-in-out forwards;
+}
+
+@keyframes loadProgress {
+  0% { width: 0%; }
+  50% { width: 70%; }
+  100% { width: 100%; }
+}
+
+/* ==========================================================================
+   LAYOUT DASHBOARD BENTO GRID
+   ========================================================================== */
+.dashboard-grid {
+  max-width: 1280px;
+  min-height: calc(100vh - 4rem);
+  margin: 2rem auto;
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "top-left  right-widget"
+    "main-left right-widget";
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* 1. CARD IN ALTO A SINISTRA (Logo Blu + Ricerca) */
+.card-top-left {
+  grid-area: top-left;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--glass-shadow);
+  padding: 1.25rem 1.75rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  background-color: var(--accent-orange);
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 8px rgba(224, 113, 74, 0.6);
+}
+
+/* VIRAGGIO AUTOMATICO DEL LOGO DA SCURO A BLU ELETTRIATO */
+.brand-logo-blue {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  filter: invert(28%) sepia(85%) saturate(2421%) hue-rotate(212deg) brightness(95%) contrast(92%);
+}
+
+.search-box {
+  flex: 1;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 0.8rem 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-dark);
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(18, 48, 41, 0.1);
+  border-radius: var(--radius-pill);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.search-box input:focus {
+  background: #ffffff;
+  border-color: var(--blue-accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* 2. CARD IN BASSO A SINISTRA (Procedure + Aggiungi PDF) */
+.card-main-bottom {
+  grid-area: main-left;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--glass-shadow);
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 520px;
+}
+
+.subtitle-mono {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.card-header-info h1 {
+  font-size: 2.3rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text-dark);
+  margin-bottom: 0.2rem;
+}
+
+.highlight-text {
+  color: var(--accent-orange);
+}
+
+.meta-mono {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+/* Stili per file-upload personalizzato nel modale admin */
+.input-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-family: var(--font-sans);
+  font-size: 16px; /* label-md token */
+  font-weight: 450;
+  line-height: normal;
+  color: var(--text-muted);
+  letter-spacing: -0.32px;
+}
+
+.custom-file-upload {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 12px;
+  border: 1px dashed rgba(18, 48, 41, 0.08);
+  background: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+}
+
+.custom-file-upload:hover {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(18, 48, 41, 0.14);
+  transform: translateY(-1px);
+}
+
+.btn-file-select {
+  font-family: var(--font-mono);
+  background: linear-gradient(135deg, #E0714A 0%, #C16140 100%);
+  color: #fff;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-file-select svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.file-name-text {
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+
+/* Contenitore PDF */
+.pdf-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* Card procedura dinamica creata da JS */
+.item-card, .procedure-card, .card, .card-procedure {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.item-card:hover, .procedure-card:hover, .card-procedure:hover {
+  background: rgba(255, 255, 255, 0.95);
+  transform: translateY(-2px);
+}
+
+.procedures-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.card-procedure {
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.8rem;
+}
+
+.favorite-card {
+  border-color: rgba(245, 158, 11, 0.35);
+  box-shadow: 0 10px 25px rgba(245, 158, 11, 0.12);
+}
+
+.card-procedure-head,
+.card-procedure-footer,
+.card-procedure-actions-inline,
+.card-procedure-admin-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.card-procedure-desc {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.card-procedure-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--blue-accent);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tag-pill:hover {
+  background: var(--blue-accent);
+  color: #fff;
+}
+
+.card-procedure-views {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.item-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 0.2rem;
+}
+
+.item-keywords {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Pulsante Pillola Arancione */
+.card-footer-action {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-top: auto;
+}
+
+.btn-primary-pill, .btn-primary {
+  font-family: var(--font-mono);
+  background: linear-gradient(135deg, #E0714A 0%, #C16140 100%);
+  color: #ffffff;
+  border: none;
+  padding: 0.85rem 1.8rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(224, 113, 74, 0.35);
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-primary-pill:hover, .btn-primary:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 24px rgba(224, 113, 74, 0.45);
+}
+
+.btn-link-mono, .btn-link {
+  font-family: var(--font-mono);
+  color: var(--tertiary-green);
+  font-size: 0.85rem;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-link-mono:hover, .btn-link:hover {
+  text-decoration: underline;
+}
+
+/* 3. CARD WIDGET A DESTRA (Rubrica Integrata) */
+.card-right-widget {
+  grid-area: right-widget;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--glass-shadow);
+  padding: 1.75rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 680px;
+}
+
+.widget-header h3 {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dark);
+  margin-bottom: 1rem;
+}
+
+.widget-search {
+  margin-bottom: 1.25rem;
+}
+
+.rubrica-filter {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  border: 1px solid rgba(18, 48, 41, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  outline: none;
+}
+
+.rubrica-filter:focus {
+  background: #ffffff;
+  border-color: var(--tertiary-green);
+}
+
+.widget-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding-right: 0.3rem;
+}
+
+.rubrica-group-title {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--tertiary-green);
+  margin-bottom: 0.6rem;
+  font-weight: 600;
+}
+
+.rubrica-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Card Contatti interna */
+.contact-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(18, 48, 41, 0.05);
+  transition: background 0.2s ease;
+}
+
+.contact-card:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.contact-name {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-dark);
+}
+
+.contact-number {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent-orange);
+  text-decoration: none;
+}
+
+.contact-number:hover {
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   MODALI & OVERLAY ANTEPRIMA / UPLOAD
+   ========================================================================== */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 48, 41, 0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.modal {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  padding: 2rem;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: var(--glass-shadow);
+}
+
+.pdf-modal {
+  max-width: 950px;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.pdf-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.pdf-modal-header h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.pdf-frame {
+  width: 100%;
+  flex: 1;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+}
+
+/* ==========================================================================
+   TAG CLICCABILI & PREFERITI
+   ========================================================================== */
+.tag {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.tag:hover {
+  background: var(--tertiary-green);
+  color: #ffffff !important;
+}
+
+/* Styling del Bottone Stella */
+.btn-star {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  color: #ccc;
+  cursor: pointer;
+  padding: 0 0.3rem;
+  transition: transform 0.15s ease, color 0.15s ease;
+  line-height: 1;
+}
+
+.btn-star:hover {
+  transform: scale(1.2);
+  color: #f59e0b;
+}
+
+.btn-star.active {
+  color: #f59e0b !important;
+}
+
+/* Card Container */
+.card-procedure {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 160px;
+}
+
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+  min-height: 28px;
+}
+
+.tag-pill {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  background-color: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 0.6rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+/* ==========================================================================
+   DRAG & DROP AREA (UPLOAD)
+   ========================================================================== */
+.drop-zone {
+  border: 2px dashed rgba(18, 48, 41, 0.2);
+  border-radius: 16px;
+  padding: 1.5rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.drop-zone.dragover {
+  border-color: var(--accent-orange);
+  background: rgba(224, 113, 74, 0.1);
+}
+
+/* ==========================================================================
+   CONTROLLI CONTATTI ADMIN IN RUBRICA
+   ========================================================================== */
+.contact-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+.btn-mini-danger {
+  background: rgba(217, 56, 30, 0.15);
+  border: none;
+  color: #d9381e;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+.btn-mini-danger:hover {
+  background: #d9381e;
+  color: #fff;
+}
+
+/* ==========================================================================
+   STILI CONTATTI RUBRICA
+   ========================================================================== */
+/* Elimina scrollbar orizzontale ed evita overflow sui contatti */
+#contactsList {
+  overflow-x: hidden !important;
+}
+
+/* Personalizzazione Scrollbar elegante per la lista contatti */
+#contactsList::-webkit-scrollbar {
+  width: 6px;
+}
+
+#contactsList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#contactsList::-webkit-scrollbar-thumb {
+  background: rgba(18, 48, 41, 0.15);
+  border-radius: 10px;
+}
+
+#contactsList::-webkit-scrollbar-thumb:hover {
+  background: rgba(18, 48, 41, 0.3);
+}
+
+.contact-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 1rem;
+  margin-bottom: 0.5rem;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 0.8px solid rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.contact-item:hover {
+  background: rgba(255, 255, 255, 0.75);
+  transform: translateX(4px);
+}
+
+.contact-name {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.contact-number {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--accent-orange);
+}
+
+/* Pulsanti Admin Rubrica */
+.btn-mini-edit {
+  background: rgba(47, 144, 120, 0.15);
+  border: none;
+  color: var(--tertiary-green);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  font-family: var(--font-mono);
+}
+
+.btn-mini-edit:hover {
+  background: var(--tertiary-green);
+  color: #fff;
+}
+
+/* ==========================================================================
+   MODALITÀ SCURA (DEEP DARK GLASS)
+   ========================================================================== */
+body.dark-mode {
+  background-color: #0d1b1e !important;
+  color: #e2e8f0 !important;
+  --text-dark: #f1f5f9;
+  --text-muted: #94a3b8;
+  --glass-bg: rgba(15, 23, 42, 0.65);
+  --glass-border: 0.8px solid rgba(255, 255, 255, 0.1);
+}
+body.dark-mode .item-card, 
+body.dark-mode .contact-card {
+  background: rgba(30, 41, 59, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+body.dark-mode input {
+  background: rgba(15, 23, 42, 0.8) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Toggle Switch Tema */
+.theme-toggle-btn {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(18, 48, 41, 0.15);
+  border-radius: 20px;
+  padding: 0.4rem 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* RESPONSIVE PER SCHERMI PICCOLI */
+@media (max-width: 920px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "top-left"
+      "main-left"
+      "right-widget";
+  }
+}
+
+/* ==========================================================================
+   STILI PAGINA ADMIN LOGIN
+   ========================================================================== */
+body.admin-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1.5rem;
+}
+
+.admin-container {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+.admin-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--glass-shadow);
+  padding: 2.5rem 2rem;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(18, 48, 41, 0.08);
+}
+
+.admin-logo {
+  height: 56px;
+  width: auto;
+  object-fit: contain;
+}
+
+.admin-title-group h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 1.1;
+}
+
+.field-group {
+  margin-bottom: 1.25rem;
+}
+
+.input-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.admin-input {
+  width: 100%;
+  padding: 0.85rem 1.1rem;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  color: var(--text-dark);
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(18, 48, 41, 0.12);
+  border-radius: 12px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.admin-input:focus {
+  background: #ffffff;
+  border-color: var(--accent-orange);
+  box-shadow: 0 0 0 3px rgba(224, 113, 74, 0.15);
+}
+
+.w-full {
+  width: 100%;
+  text-align: center;
+}
+
+.status-message {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  min-height: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.status-message.err {
+  color: #d9381e;
+  font-weight: 600;
+}
+
+.status-message.info {
+  color: var(--tertiary-green);
+}
+
+/* Box autenticato */
+.logged-box {
+  text-align: center;
+}
+
+.logged-text {
+  font-size: 0.95rem;
+  color: var(--text-dark);
+  margin-bottom: 1.5rem;
+}
+
+.logged-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* ==========================================================================
+   STILI DEDICATI AI PULSANTI E CARD PROCEDURE (PER APP.JS)
+   ========================================================================== */
+
+/* Layout interno della Card della Procedura */
+.item-card {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 15px rgba(18, 48, 41, 0.03);
+}
+
+.item-card:hover {
+  background: rgba(255, 255, 255, 0.95);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(18, 48, 41, 0.06);
+}
+
+.item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* Tasto 'Apri PDF' Moderno ed Elegante */
+.btn-view-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(18, 48, 41, 0.12);
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.btn-view-pdf svg {
+  stroke: var(--tertiary-green);
+  transition: transform 0.2s ease, stroke 0.2s ease;
+}
+
+.btn-view-pdf:hover {
+  background: var(--text-dark);
+  color: #ffffff;
+  border-color: var(--text-dark);
+  box-shadow: 0 6px 16px rgba(18, 48, 41, 0.15);
+}
+
+.btn-view-pdf:hover svg {
+  stroke: var(--accent-orange);
+  transform: translate(1px, -1px);
+}
+
+/* Pulsante Elimina (solo per Admin) */
+.btn-delete {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: #d9381e;
+  background: rgba(217, 56, 30, 0.08);
+  border: 1px solid rgba(217, 56, 30, 0.2);
+  padding: 0.55rem 0.9rem;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-delete:hover {
+  background: #d9381e;
+  color: #ffffff;
+}
+
+/* Fix Visibilità Modale PDF */
+#pdfOverlay {
+  display: none;
+}
+
+#pdfOverlay.open {
+  display: flex !important;
+}

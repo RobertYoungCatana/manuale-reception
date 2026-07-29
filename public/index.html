@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manuale della Reception - Grand Hotel Azzurra</title>
+  
+  <!-- Font di progetto -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Foglio di stile principale -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Libreria Anime.js per lo Splash Screen -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+</head>
+<body>
+
+  <!-- === PRELOADER SCREEN (YOUNG CATANA) === -->
+  <div id="preloader">
+    <div class="loader-content">
+      <img src="logo.png" alt="YOUNG CATANA" class="loader-logo">
+      <p class="loader-slogan">IDEE UMANE. POTENZA AI</p>
+      <div class="loader-bar-container">
+        <div class="loader-bar-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Canvas Sfondo Animato -->
+  <canvas id="bgCanvas"></canvas>
+
+  <!-- BENTO DASHBOARD CONTAINER -->
+  <main class="dashboard-grid">
+
+    <!-- 1. IN ALTO A SINISTRA: Logo + Ricerca Procedure -->
+    <header class="card-top-left">
+      <div class="brand">
+        <span class="status-dot"></span>
+        <img src="assets/logo.png" alt="Grand Hotel Azzurra" class="brand-logo-blue">
+      </div>
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Cerca procedura o parola chiave..." autocomplete="off">
+      </div>
+    </header>
+
+    <!-- 2. IN BASSO A SINISTRA: Card Procedure PDF -->
+    <section class="card-main-bottom">
+      <div class="card-header-info">
+        <p class="subtitle-mono">GRAND HOTEL AZZURRA · RECEPTION</p>
+        <h1>Procedure <span class="highlight-text">disponibili.</span></h1>
+        <p class="meta-mono" id="subcount">Caricamento...</p>
+      </div>
+
+      <!-- Meta Row Risultati -->
+      <div class="meta-row" id="metaRow" style="display:none;">
+        <span id="resultCount"></span>
+        <button class="btn-link" id="clearSearch">cancella ricerca</button>
+      </div>
+
+      <!-- Sezione Preferiti -->
+      <div id="favoritesSection" style="display: none; margin-bottom: 2rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.8rem;">
+          <span style="font-size: 1.2rem; color: #f59e0b;">★</span>
+          <h3 style="margin: 0; font-family: var(--font-mono); font-size: 0.9rem; letter-spacing: 0.05em; color: var(--text-dark);">
+            PROCEDURE PREFERITE
+          </h3>
+        </div>
+        <div id="favoritesList" class="procedures-grid"></div>
+        <hr style="border: none; border-top: 1px solid rgba(18, 48, 41, 0.08); margin-top: 1.5rem;">
+      </div>
+
+      <!-- Lista Completa Procedure -->
+      <div id="proceduresList" class="procedures-grid"></div>
+
+      <!-- Footer Card: Tasti Azione (Area Admin + Aggiungi PDF per admin) -->
+      <div class="card-footer-action">
+        <!-- Questo pulsante deve essere visibile solo se admin -->
+        <button id="btnAddPdf" class="btn-primary-pill" style="display: none;">
+          + Aggiungi Nuovo PDF
+        </button>
+
+        <a href="/admin.html" class="btn-admin-pill">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          Area Admin
+        </a>
+      </div>
+    </section>
+
+    <!-- 3. A DESTRA: Widget Rubrica Telefonica Integrato -->
+    <aside class="card-right-widget" style="display: flex; flex-direction: column; height: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-shrink: 0;">
+        <h3 style="margin: 0; font-family: var(--font-mono); font-size: 0.9rem; letter-spacing: 0.05em; color: var(--text-dark);">
+          RUBRICA RECEPTION
+        </h3>
+        <button id="btnAddContact" class="btn-primary-pill" style="display: none; padding: 0.3rem 0.8rem; font-size: 0.75rem;">
+          + Aggiungi
+        </button>
+      </div>
+
+      <input type="text" id="searchContact" placeholder="Cerca contatto o numero..." class="admin-input" style="width: 100%; margin-bottom: 1rem; flex-shrink: 0;">
+
+      <div id="contactsList" style="flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: 0.5rem; padding-right: 4px;">
+        <!-- I contatti verranno inseriti qui -->
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- MODALE ANTEPRIMA PDF -->
+  <div class="overlay" id="pdfOverlay" style="display: none;">
+    <div class="modal pdf-modal">
+      <div class="pdf-modal-header">
+        <h2 id="pdfTitle">Anteprima Procedura</h2>
+        <button class="btn-link-mono" id="closePdf">Chiudi [X]</button>
+      </div>
+      <iframe id="pdfFrame" class="pdf-frame" title="Anteprima PDF"></iframe>
+    </div>
+  </div>
+
+  <!-- MODALE PER IL CARICAMENTO NUOVO PDF (Upload Overlay) -->
+  <div id="uploadOverlay" class="overlay" style="display: none;">
+    <div class="modal">
+      <h2 style="margin-bottom: 1rem; color: var(--text-dark);">Aggiungi Nuovo PDF</h2>
+      
+      <form id="uploadForm">
+        <div style="margin-bottom: 1rem;">
+          <label style="display:block; margin-bottom: 0.4rem; font-family: var(--font-mono); font-size: 0.8rem;">Titolo Procedura:</label>
+          <input type="text" id="uploadPdfTitle" required class="admin-input" placeholder="es. Procedura Check-in">
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <label style="display:block; margin-bottom: 0.4rem; font-family: var(--font-mono); font-size: 0.8rem;">Parole Chiave (separate da virgola):</label>
+          <input type="text" id="pdfKeywords" required class="admin-input" placeholder="es. checkin, prenotazione, camere">
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <label class="input-label">File PDF:</label>
+          
+          <!-- File input nativo nascosto -->
+          <input type="file" id="pdfFile" accept="application/pdf" required style="display: none;">
+          
+          <!-- Contenitore personalizzato stilizzato -->
+          <div class="custom-file-upload" onclick="document.getElementById('pdfFile').click()">
+            <span class="btn-file-select">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span>Scegli File</span>
+            </span>
+            <span id="fileNameDisplay" class="file-name-text">Nessun file selezionato</span>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+          <button type="button" id="btnCancelUpload" class="btn-link-mono">Annulla</button>
+          <button type="submit" class="btn-primary-pill">Salva PDF</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Script di Sfondo e Applicazione -->
+  <script src="bg.js"></script>
+  <script src="app.js"></script>
+
+  <!-- Filtro Istantaneo per la Rubrica -->
+  <script>
+    document.getElementById('rubricaSearch').addEventListener('input', function(e) {
+      const q = e.target.value.toLowerCase().trim();
+      document.querySelectorAll('.widget-content .contact-card').forEach(card => {
+        const text = card.getAttribute('data-search').toLowerCase();
+        card.style.display = text.includes(q) ? 'flex' : 'none';
+      });
+    });
+  </script>
+
+  <!-- === MODALE PER AGGIUNGERE/MODIFICARE CONTATTI === -->
+  <div id="contactOverlay" class="overlay" style="display: none;">
+    <div class="modal">
+      <h2 id="contactModalTitle" style="margin-bottom: 1rem; color: var(--text-dark);">Aggiungi Contatto</h2>
+
+      <form id="contactForm">
+        <input type="hidden" id="contactId">
+
+        <div style="margin-bottom: 1rem;">
+          <label class="input-label">Nome Reparto/Persona:</label>
+          <input type="text" id="contactName" required class="admin-input" placeholder="es. Cucina, Mario">
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <label class="input-label">Numero / Interno:</label>
+          <input type="text" id="contactNumber" required class="admin-input" placeholder="es. 6013 o 3331234567">
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <label class="input-label">Categoria:</label>
+          <select id="contactCategory" required class="admin-input" style="width: 100%; padding: 0.8rem; border-radius: 12px; background: rgba(255, 255, 255, 0.75); border: 1px solid rgba(18, 48, 41, 0.12);">
+            <option value="interni">Numeri Interni</option>
+            <option value="esterni">Numeri Esterni</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+          <button type="button" id="btnCancelContact" class="btn-link-mono">Annulla</button>
+          <button type="submit" class="btn-primary-pill">Salva Contatto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+  </script>
+</body>
+</html>
