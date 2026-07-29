@@ -497,23 +497,15 @@ async function init() {
   initTheme();
   initSplashScreen();
 
-  try {
-    const res = await fetch('/api/admin/status');
-    const data = await res.json();
-    isAdmin = !!data.isAdmin;
-  } catch (e) {
-    isAdmin = false;
-  }
-
   initDragAndDrop();
   updateAdminUI();
   loadDocs();
 }
 
 function updateAdminUI() {
-  if (btnAddPdf) btnAddPdf.style.display = isAdmin ? 'inline-flex' : 'none';
-  if (isAdmin && btnAddContact) {
-    btnAddContact.style.display = 'inline-block';
+  if (btnAddPdf) btnAddPdf.style.display = 'inline-flex';
+  if (btnAddContact) {
+    btnAddContact.style.display = isAdmin ? 'inline-block' : 'none';
   }
   render(searchInput ? searchInput.value.trim() : '');
   renderContacts();

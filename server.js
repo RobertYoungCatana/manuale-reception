@@ -150,7 +150,7 @@ app.get('/api/procedures/pdf/:filename', (req, res) => {
   }
 });
 
-app.post('/api/procedures', requireAdmin, upload.single('pdf'), async (req, res) => {
+app.post('/api/procedures', upload.single('pdf'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Nessun file ricevuto' });
 
