@@ -128,11 +128,13 @@ function renderProcedures(listToRender = docs) {
       ? tagsArray.slice(0, 6).map(tag => `<span class="tag-pill">#${escapeHtml(tag)}</span>`).join('')
       : '<span style="font-size: 0.75rem; color: #94a3b8; font-style: italic;">Nessun tag</span>';
 
+    const source = proc.pdfUrl && String(proc.pdfUrl).startsWith('http') ? 'Remote' : (proc.filename ? 'Local' : 'None');
     return `
       <div class="card-procedure ${isFav ? 'favorite-card' : ''}">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
           <h4 style="margin: 0; font-size: 1.05rem; font-weight: 600; color: #0f172a; line-height: 1.3;">
             ${escapeHtml(proc.title || proc.name)}
+            <span style="font-size:0.7rem; margin-left:0.6rem; padding:0.15rem 0.4rem; background:#eef2ff; color:#1e3a8a; border-radius:6px; vertical-align:middle;">${source}</span>
           </h4>
           <button class="btn-star ${isFav ? 'active' : ''}" onclick="toggleProcedureFavorite(event, ${proc.id})" title="Aggiungi/Rimuovi Preferito">
             ★

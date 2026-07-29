@@ -129,6 +129,30 @@ app.get('/api/admin/status', (req, res) => {
 
 app.get('/api/procedures', (req, res) => {
   const db = readDb();
+
+  // If DB is empty and Cloudinary is configured, try to list files from Cloudinary
+  if ((!db || db.length === 0) && useCloudinary && typeof cloudinary.api !== 'undefined') {
+    (async () => {
+      try {
+        const info = await cloudinary.api.resources({ resource_type: 'raw', prefix: 'manuali_hotel', max_results: 500 });
+        const items = (info.resources || []).map(r => ({
+          id: r.public_id,
+          title: r.original_filename ? `${r.original_filename}.${r.format || 'pdf'}` : r.public_id.split('/').pop(),
+          keywords: [],
+          pdfUrl: r.secure_url || r.url,
+          filename: r.public_id,
+          originalName: r.original_filename ? `${r.original_filename}.${r.format || 'pdf'}` : (r.format ? `${r.public_id.split('/').pop()}.${r.format}` : r.public_id),
+          uploadedAt: r.created_at ? Date.parse(r.created_at) : Date.now()
+        }));
+        return res.json(items);
+      } catch (err) {
+        console.warn('Cloudinary list fallback failed:', err.message);
+        return res.json(db.map(({ text, ...rest }) => rest));
+      }
+    })();
+    return;
+  }
+
   res.json(db.map(({ text, ...rest }) => rest));
 });
 
@@ -304,6 +328,7 @@ app.post('/api/procedures', upload.fields([{ name: 'pdf', maxCount: 1 }, { name:
     const db = readDb();
     db.unshift(procedure);
     writeDb(db);
+    console.log('Saved procedure to db.json:', { id: procedure.id, filename: procedure.filename, pdfUrl: procedure.pdfUrl });
 
     const { text: _omit, ...toReturn } = procedure;
     res.json(toReturn);
