@@ -159,17 +159,62 @@ app.get('/api/procedures/:id/pdf', (req, res) => {
   const db = readDb();
   const proc = db.find(p => p.id === req.params.id);
   if (!proc) return res.status(404).json({ error: 'Procedura non trovata' });
+  console.log(`/api/procedures/${req.params.id}/pdf requested, proc:`, { id: proc.id, pdfUrl: proc.pdfUrl, filename: proc.filename });
 
-  if (proc.pdfUrl) return res.redirect(proc.pdfUrl);
+  // If pdfUrl is a remote URL hosted on Cloudinary, try to resolve a secure URL via API and redirect.
+  if (proc.pdfUrl && (proc.pdfUrl.startsWith('http://') || proc.pdfUrl.startsWith('https://'))) {
+    try {
+      const isCloudinary = proc.pdfUrl.includes('res.cloudinary.com') || (proc.filename && proc.filename.includes('cloudinary'));
+      if (isCloudinary && typeof cloudinary.api !== 'undefined' && proc.filename) {
+        try {
+          // try resource lookup with common resource types
+          let info;
+          try {
+            info = await cloudinary.api.resource(proc.filename, { resource_type: 'raw' });
+          } catch (e) {
+            info = await cloudinary.api.resource(proc.filename, { resource_type: 'auto' });
+          }
+          if (info && (info.secure_url || info.url)) {
+            return res.redirect(info.secure_url || info.url);
+          }
+        } catch (err) {
+          console.warn('Cloudinary API resource lookup failed:', err.message);
+          // fallthrough to redirect to stored pdfUrl
+        }
+      }
 
-  if (proc.filename) {
-    const filePath = path.join(__dirname, 'uploads', proc.filename);
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="${proc.originalName || proc.filename}"`);
-    return res.sendFile(filePath);
+      return res.redirect(proc.pdfUrl);
+    } catch (err) {
+      console.error('Error redirecting to remote pdfUrl:', err);
+      return res.status(502).json({ error: 'Impossibile recuperare il PDF remoto' });
+    }
   }
 
-  res.status(404).json({ error: 'PDF non disponibile' });
+  // If pdfUrl points to a local uploads path, serve the file directly
+  if (proc.pdfUrl && proc.pdfUrl.startsWith('/')) {
+    const candidate = path.join(__dirname, proc.pdfUrl.replace(/^\//, ''));
+    if (fs.existsSync(candidate)) {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${proc.originalName || path.basename(candidate)}"`);
+      return res.sendFile(candidate);
+    } else {
+      console.warn('Requested pdfUrl file not found on disk:', candidate);
+    }
+  }
+
+  // Fallback to filename field (older entries)
+  if (proc.filename) {
+    const filePath = path.join(__dirname, 'uploads', proc.filename);
+    if (fs.existsSync(filePath)) {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${proc.originalName || proc.filename}"`);
+      return res.sendFile(filePath);
+    } else {
+      console.warn('Requested filename not found on disk:', filePath);
+    }
+  }
+
+  return res.status(404).json({ error: 'PDF non disponibile' });
 });
 
 app.get('/api/procedures/pdf/:filename', (req, res) => {
