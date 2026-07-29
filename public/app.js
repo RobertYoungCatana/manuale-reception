@@ -426,14 +426,19 @@ if (uploadForm) {
     fd.append('pdf', fileEl.files[0]);
 
     try {
+      console.log('Upload PDF request', { title, keywords, fileName: fileEl.files[0].name });
       const res = await fetch('/api/procedures', { method: 'POST', body: fd });
-      if (!res.ok) throw new Error('Upload fallito');
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => null);
+        const message = errBody?.error || errBody?.message || `Upload fallito (status ${res.status})`;
+        throw new Error(message);
+      }
       closeUpload();
       await loadDocs();
       alert('PDF caricato con successo.');
     } catch (err) {
-      console.error(err);
-      alert('Errore durante l\'upload del PDF.');
+      console.error('Upload error', err);
+      alert(`Errore durante l'upload del PDF: ${err.message}`);
     }
   });
 }

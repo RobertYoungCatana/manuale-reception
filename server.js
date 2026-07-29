@@ -177,8 +177,20 @@ app.get('/api/procedures/pdf/:filename', (req, res) => {
 
 app.post('/api/procedures', upload.fields([{ name: 'pdf', maxCount: 1 }, { name: 'file', maxCount: 1 }]), async (req, res) => {
   try {
+    console.log('/api/procedures upload', {
+      fileFields: req.files ? Object.keys(req.files) : [],
+      pdfFiles: req.files?.pdf?.length || 0,
+      fileFiles: req.files?.file?.length || 0,
+      body: {
+        title: req.body.title,
+        keywords: req.body.keywords
+      }
+    });
+
     const uploadedFile = (req.files?.pdf && req.files.pdf[0]) || (req.files?.file && req.files.file[0]);
-    if (!uploadedFile) return res.status(400).json({ error: 'Nessun file ricevuto' });
+    if (!uploadedFile) {
+      return res.status(400).json({ error: 'Nessun file ricevuto. Assicurati di selezionare un PDF valido.' });
+    }
 
     const pdfUrl = uploadedFile.path && uploadedFile.path.startsWith('http')
       ? uploadedFile.path
@@ -188,9 +200,9 @@ app.post('/api/procedures', upload.fields([{ name: 'pdf', maxCount: 1 }, { name:
     let text = '';
     let keywords = [];
 
-    if (pdfUrl) {
-      try {
-        const response = await fetch(pdfUrl);
+    try {
+      if (uploadedFile.path && uploadedFile.path.startsWith('http')) {
+        const response = await fetch(uploadedFile.path);
         if (response.ok) {
           const buffer = Buffer.from(await response.arrayBuffer());
           const parser = new PDFParse({ data: buffer });
@@ -199,9 +211,16 @@ app.post('/api/procedures', upload.fields([{ name: 'pdf', maxCount: 1 }, { name:
           text = parsed.text.slice(0, 30000);
           keywords = extractKeywords(text);
         }
-      } catch (err) {
-        console.warn('Impossibile estrarre il testo dal PDF remoto:', err.message);
+      } else if (uploadedFile.path) {
+        const buffer = fs.readFileSync(uploadedFile.path);
+        const parser = new PDFParse({ data: buffer });
+        const parsed = await parser.getText();
+        await parser.destroy();
+        text = parsed.text.slice(0, 30000);
+        keywords = extractKeywords(text);
       }
+    } catch (err) {
+      console.warn('Impossibile estrarre il testo dal PDF:', err.message);
     }
 
     const procedure = {
