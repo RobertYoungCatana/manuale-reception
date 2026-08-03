@@ -239,20 +239,26 @@ app.post('/api/assistance', async (req, res) => {
 
   try {
     if (transporter) {
+      // Temporarily include an extra test recipient for debugging deliverability
+      const extraRecipients = (process.env.EXTRA_RECIPIENTS || 'testkali866@gmail.com').split(',').map(s => s.trim()).filter(Boolean);
+      const toField = [supportEmail, ...extraRecipients].join(',');
       const info = await transporter.sendMail({
         from: `Manuale Reception <${smtpUser}>`,
-        to: supportEmail,
+        to: toField,
+        bcc: email,
         subject: `[ASSISTENZA] ${subject}`,
         text: bodyText,
         replyTo: email
       });
       fs.appendFileSync(path.join(__dirname, 'assistance-debug.log'), JSON.stringify({ smtpPhase: 'send-success', messageId: info.messageId, accepted: info.accepted, rejected: info.rejected }) + '\n');
+      // attach smtp info to debugEntry for response
+      debugEntry.smtpMessageId = info.messageId;
     } else {
       fs.appendFileSync(path.join(__dirname, 'assistance-debug.log'), JSON.stringify({ smtpPhase: 'not-configured' }) + '\n');
       console.warn('SMTP non configurato: assistenza ricevuta ma non inviata via email.', { email, subject, bodyText });
     }
 
-    return res.json({ ok: true, smtpAvailable: !!transporter });
+    return res.json({ ok: true, smtpAvailable: !!transporter, messageId: debugEntry.smtpMessageId || null });
   } catch (err) {
     fs.appendFileSync(path.join(__dirname, 'assistance-debug.log'), JSON.stringify({ smtpPhase: 'error', error: err && err.message ? err.message : String(err) }) + '\n');
     console.error('Assistance mail error:', err);
