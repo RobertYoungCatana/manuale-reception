@@ -56,14 +56,21 @@ function toggleTheme() {
   localStorage.setItem('theme_dark', document.body.classList.contains('dark-mode'));
 }
 
-window.addEventListener('load', () => {
+function hidePreloader() {
   const preloader = document.getElementById('preloader');
-  if (preloader) {
-    setTimeout(() => {
-      preloader.classList.add('fade-out');
-    }, 1800);
-  }
+  if (!preloader || preloader.classList.contains('fade-out')) return;
+  preloader.classList.add('fade-out');
+}
+
+window.addEventListener('load', () => {
+  setTimeout(hidePreloader, 1800);
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(hidePreloader, 2200);
+});
+
+setTimeout(hidePreloader, 6000);
 
 // --- Caricamento e Rendering Procedure ---
 async function loadDocs() {
