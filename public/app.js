@@ -384,7 +384,6 @@ if (pdfOverlay) {
 }
 
 // --- Upload Overlay / Admin actions ---
-const btnAddPdf = document.getElementById('btnAddPdf');
 const btnAssistance = document.getElementById('btnAssistance');
 const btnLogin = document.getElementById('btnLogin');
 const btnLogout = document.getElementById('btnLogout');
