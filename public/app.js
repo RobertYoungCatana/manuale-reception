@@ -430,12 +430,6 @@ function closeUpload() {
 }
 
 function openAssistance() {
-  if (!userLoggedIn) {
-    alert('Devi effettuare il login per inviare una richiesta di assistenza.');
-    openLogin();
-    return;
-  }
-
   if (!assistanceOverlay) return;
   refreshAssistanceEmail();
   assistanceOverlay.style.display = 'flex';
