@@ -1,0 +1,24 @@
+{"debugEntry":{"timestamp":"2026-08-03T15:58:05.096Z","sessionEmail":"","bodyEmail":"info@example.com","name":"Test User","subject":"Prova SMTP","message":"Test invio assistenza via SMTP.","errorContext":"Debug","email":"info@example.com","smtpHost":"smtp.gmail.com","smtpPort":465,"smtpUser":"*********************.com","smtpSecure":true,"supportEmail":"robertpatriche5@gmail.com"}}
+{"smtpPhase":"verify-start"}
+{"smtpPhase":"verify-success"}
+{"smtpPhase":"send-success","messageId":"<af14863d-a416-595b-9cbe-9fa7ea25442c@gmail.com>","accepted":["robertpatriche5@gmail.com"],"rejected":[]}
+{"debugEntry":{"timestamp":"2026-08-03T15:59:58.722Z","sessionEmail":"testkali866@gmail.com","bodyEmail":"","name":"Test Kali","subject":"Errore di prova","message":"Questa è una prova","errorContext":"","email":"testkali866@gmail.com","smtpHost":"smtp.gmail.com","smtpPort":465,"smtpUser":"*********************.com","smtpSecure":true,"supportEmail":"robertpatriche5@gmail.com"}}
+{"smtpPhase":"verify-start"}
+{"smtpPhase":"verify-success"}
+{"debugEntry":{"timestamp":"2026-08-03T16:00:03.321Z","sessionEmail":"testkali866@gmail.com","bodyEmail":"","name":"Test Kali","subject":"Errore di prova","message":"Questa è una prova","errorContext":"","email":"testkali866@gmail.com","smtpHost":"smtp.gmail.com","smtpPort":465,"smtpUser":"*********************.com","smtpSecure":true,"supportEmail":"robertpatriche5@gmail.com"}}
+{"smtpPhase":"verify-start"}
+{"smtpPhase":"verify-success"}
+{"debugEntry":{"timestamp":"2026-08-03T16:00:04.287Z","sessionEmail":"testkali866@gmail.com","bodyEmail":"","name":"Test Kali","subject":"Errore di prova","message":"Questa è una prova","errorContext":"","email":"testkali866@gmail.com","smtpHost":"smtp.gmail.com","smtpPort":465,"smtpUser":"*********************.com","smtpSecure":true,"supportEmail":"robertpatriche5@gmail.com"}}
+{"smtpPhase":"verify-start"}
+{"smtpPhase":"verify-success"}
+{"debugEntry":{"timestamp":"2026-08-03T16:00:05.426Z","sessionEmail":"testkali866@gmail.com","bodyEmail":"","name":"Test Kali","subject":"Errore di prova","message":"Questa è una prova","errorContext":"","email":"testkali866@gmail.com","smtpHost":"smtp.gmail.com","smtpPort":465,"smtpUser":"*********************.com","smtpSecure":true,"supportEmail":"robertpatriche5@gmail.com"}}
+{"smtpPhase":"verify-start"}
+{"smtpPhase":"send-success","messageId":"<4f7c5e87-e61f-0e50-684c-e9ac458e5317@gmail.com>","accepted":["robertpatriche5@gmail.com"],"rejected":[]}
+{"smtpPhase":"verify-success"}
+{"smtpPhase":"send-success","messageId":"<eb173e87-2491-a4ff-a385-c27e6da559f3@gmail.com>","accepted":["robertpatriche5@gmail.com"],"rejected":[]}
+{"smtpPhase":"send-success","messageId":"<87a33a52-ffe8-2a84-25a0-f5cb047b8aba@gmail.com>","accepted":["robertpatriche5@gmail.com"],"rejected":[]}
+{"smtpPhase":"send-success","messageId":"<2cd63c42-4ed8-f874-e41c-594a860c8488@gmail.com>","accepted":["robertpatriche5@gmail.com"],"rejected":[]}
+{"debugEntry":{"timestamp":"2026-08-03T16:01:42.525Z","sessionEmail":"robertpatriche5@gmail.com","bodyEmail":"","name":"Robert","subject":"Prova 2","message":"Questo è un test di prova","errorContext":"","email":"robertpatriche5@gmail.com","smtpHost":"smtp.gmail.com","smtpPort":465,"smtpUser":"*********************.com","smtpSecure":true,"supportEmail":"robertpatriche5@gmail.com"}}
+{"smtpPhase":"verify-start"}
+{"smtpPhase":"verify-success"}
+{"smtpPhase":"send-success","messageId":"<6633f39c-04c7-90b3-a279-018f0b1d5b1b@gmail.com>","accepted":["robertpatriche5@gmail.com"],"rejected":[]}

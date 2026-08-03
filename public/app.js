@@ -4,6 +4,7 @@ let isAdmin = false;
 let favorites = JSON.parse(localStorage.getItem('fav_docs') || '[]');
 let procedureFavorites = JSON.parse(localStorage.getItem('fav_procedures') || '[]');
 let viewCounts = JSON.parse(localStorage.getItem('doc_views') || '{}');
+// showOnlyFavorites removed (reverting last changes)
 
 // --- Elementi DOM ---
 const subcount = document.getElementById('subcount');
@@ -13,6 +14,7 @@ const resultCount = document.getElementById('resultCount');
 const favoritesSection = document.getElementById('favoritesSection');
 const favoritesList = document.getElementById('favoritesList');
 const proceduresList = document.getElementById('proceduresList');
+const btnAddPdf = document.getElementById('btnAddPdf');
 
 function escapeHtml(s) {
   if (!s) return '';
@@ -113,7 +115,7 @@ function renderProcedures(listToRender = docs) {
   });
 
   container.innerHTML = sortedList.map(proc => {
-    const isFav = procedureFavorites.includes(proc.id);
+    const isFav = procedureFavorites.includes(String(proc.id));
 
     let tagsArray = [];
     if (Array.isArray(proc.tags)) {
@@ -136,9 +138,6 @@ function renderProcedures(listToRender = docs) {
             ${escapeHtml(proc.title || proc.name)}
             <span style="font-size:0.7rem; margin-left:0.6rem; padding:0.15rem 0.4rem; background:#eef2ff; color:#1e3a8a; border-radius:6px; vertical-align:middle;">${source}</span>
           </h4>
-          <button class="btn-star ${isFav ? 'active' : ''}" onclick="toggleProcedureFavorite(event, ${proc.id})" title="Aggiungi/Rimuovi Preferito">
-            ★
-          </button>
         </div>
 
         <div class="tags-container">
@@ -146,9 +145,6 @@ function renderProcedures(listToRender = docs) {
         </div>
 
         <div class="card-footer">
-          <span style="font-size: 0.8rem; color: #64748b; display: flex; align-items: center; gap: 0.3rem;">
-            👁️ ${proc.views || 0} visite
-          </span>
           <div style="display: flex; align-items: center; gap: 0.5rem;">
             <button class="btn-mini-edit" onclick="printProcedure('${proc.id}')" title="Stampa">
               🖨️
@@ -163,6 +159,8 @@ function renderProcedures(listToRender = docs) {
   }).join('');
 }
 
+// favorites view code removed (reverted)
+
 // --- Gestione Preferiti & Tag ---
 function toggleFavorite(id) {
   if (favorites.includes(id)) {
@@ -176,11 +174,12 @@ function toggleFavorite(id) {
 
 function toggleProcedureFavorite(event, id) {
   event.stopPropagation();
+  const sid = String(id);
 
-  if (procedureFavorites.includes(id)) {
-    procedureFavorites = procedureFavorites.filter(favId => favId !== id);
+  if (procedureFavorites.includes(sid)) {
+    procedureFavorites = procedureFavorites.filter(favId => favId !== sid);
   } else {
-    procedureFavorites.push(id);
+    procedureFavorites.push(sid);
   }
 
   localStorage.setItem('fav_procedures', JSON.stringify(procedureFavorites));
@@ -379,11 +378,30 @@ if (pdfOverlay) {
 
 // --- Upload Overlay / Admin actions ---
 const btnAddPdf = document.getElementById('btnAddPdf');
+const btnAssistance = document.getElementById('btnAssistance');
+const btnLogin = document.getElementById('btnLogin');
+const btnLogout = document.getElementById('btnLogout');
+const userBadge = document.getElementById('userBadge');
 const uploadOverlay = document.getElementById('uploadOverlay');
+const assistanceOverlay = document.getElementById('assistanceOverlay');
+const loginOverlay = document.getElementById('loginOverlay');
 const uploadForm = document.getElementById('uploadForm');
+const assistanceForm = document.getElementById('assistanceForm');
+const loginForm = document.getElementById('loginForm');
 const btnCancelUpload = document.getElementById('btnCancelUpload');
+const btnCancelAssistance = document.getElementById('btnCancelAssistance');
+const btnCancelLogin = document.getElementById('btnCancelLogin');
 const pdfFileInput = document.getElementById('pdfFile');
 const fileNameDisplay = document.getElementById('fileNameDisplay');
+const loginEmail = document.getElementById('loginEmail');
+const loginStatus = document.getElementById('loginStatus');
+const assistanceName = document.getElementById('assistanceName');
+const assistanceEmail = document.getElementById('assistanceEmail');
+const assistanceSubject = document.getElementById('assistanceSubject');
+const assistanceMessage = document.getElementById('assistanceMessage');
+const assistanceErrorContext = document.getElementById('assistanceErrorContext');
+let userLoggedIn = false;
+let userEmail = '';
 
 if (pdfFileInput && fileNameDisplay) {
   pdfFileInput.addEventListener('change', () => {
@@ -405,8 +423,176 @@ function closeUpload() {
   if (uploadForm) uploadForm.reset();
 }
 
+function openAssistance() {
+  if (!userLoggedIn) {
+    alert('Devi effettuare il login per inviare una richiesta di assistenza.');
+    openLogin();
+    return;
+  }
+
+  if (!assistanceOverlay) return;
+  refreshAssistanceEmail();
+  assistanceOverlay.style.display = 'flex';
+  assistanceOverlay.classList.add('open');
+}
+
+function closeAssistance() {
+  if (!assistanceOverlay) return;
+  assistanceOverlay.classList.remove('open');
+  assistanceOverlay.style.display = 'none';
+  if (assistanceForm) assistanceForm.reset();
+}
+
+function openLogin() {
+  if (!loginOverlay) return;
+  loginOverlay.style.display = 'flex';
+  loginOverlay.classList.add('open');
+}
+
+function closeLogin() {
+  if (!loginOverlay) return;
+  loginOverlay.classList.remove('open');
+  loginOverlay.style.display = 'none';
+  if (loginForm) loginForm.reset();
+  if (loginStatus) loginStatus.textContent = '';
+}
+
+function refreshUserUI() {
+  if (btnLogin) btnLogin.style.display = userLoggedIn ? 'none' : 'inline-flex';
+  if (btnLogout) btnLogout.style.display = userLoggedIn ? 'inline-flex' : 'none';
+  if (userBadge) {
+    if (userLoggedIn && userEmail) {
+      userBadge.textContent = `Loggato come ${userEmail}`;
+      userBadge.style.display = 'inline-block';
+    } else {
+      userBadge.style.display = 'none';
+    }
+  }
+}
+
+function refreshAssistanceEmail() {
+  if (!assistanceEmail) return;
+  if (userLoggedIn && userEmail) {
+    assistanceEmail.value = userEmail;
+    assistanceEmail.readOnly = true;
+  } else {
+    assistanceEmail.value = '';
+    assistanceEmail.readOnly = false;
+  }
+}
+
+async function loadUserStatus() {
+  try {
+    const res = await fetch('/api/user/status');
+    if (!res.ok) return;
+    const data = await res.json();
+    userLoggedIn = !!data.loggedIn;
+    userEmail = data.email || '';
+  } catch (err) {
+    console.warn('Impossibile recuperare lo stato utente', err);
+  }
+  refreshUserUI();
+}
+
 if (btnAddPdf) btnAddPdf.addEventListener('click', openUpload);
+if (btnAssistance) btnAssistance.addEventListener('click', openAssistance);
+if (btnLogin) btnLogin.addEventListener('click', openLogin);
+if (loginForm) {
+  loginForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const email = loginEmail ? loginEmail.value.trim().toLowerCase() : '';
+    if (!email) {
+      if (loginStatus) loginStatus.textContent = 'Inserisci l\'email per accedere.';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/user/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => null);
+        throw new Error(errBody?.error || `Accesso fallito (${res.status})`);
+      }
+
+      const data = await res.json();
+      userLoggedIn = true;
+      userEmail = data.email || email;
+      refreshUserUI();
+      closeLogin();
+    } catch (err) {
+      console.error('Login error', err);
+      if (loginStatus) loginStatus.textContent = err.message;
+    }
+  });
+}
+if (btnLogout) btnLogout.addEventListener('click', async () => {
+  await fetch('/api/user/logout', { method: 'POST' });
+  userLoggedIn = false;
+  userEmail = '';
+  refreshUserUI();
+});
 if (btnCancelUpload) btnCancelUpload.addEventListener('click', closeUpload);
+if (btnCancelAssistance) btnCancelAssistance.addEventListener('click', closeAssistance);
+if (btnCancelLogin) btnCancelLogin.addEventListener('click', closeLogin);
+if (uploadOverlay) {
+  uploadOverlay.addEventListener('click', e => { if (e.target === uploadOverlay) closeUpload(); });
+}
+if (assistanceOverlay) {
+  assistanceOverlay.addEventListener('click', e => { if (e.target === assistanceOverlay) closeAssistance(); });
+}
+if (loginOverlay) {
+  loginOverlay.addEventListener('click', e => { if (e.target === loginOverlay) closeLogin(); });
+}
+
+if (assistanceForm) {
+  assistanceForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    if (!userLoggedIn) {
+      alert('Devi essere loggato per inviare una richiesta di assistenza.');
+      closeAssistance();
+      openLogin();
+      return;
+    }
+
+    const name = assistanceName ? assistanceName.value.trim() : '';
+    const subject = assistanceSubject ? assistanceSubject.value.trim() : '';
+    const message = assistanceMessage ? assistanceMessage.value.trim() : '';
+    const errorContext = assistanceErrorContext ? assistanceErrorContext.value.trim() : '';
+
+    if (!subject || !message) {
+      alert('Compila soggetto e messaggio.');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/assistance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, subject, message, errorContext })
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || `Errore invio assistenza (${res.status})`);
+      }
+
+      closeAssistance();
+      if (data && data.smtpAvailable === false) {
+        alert('Richiesta ricevuta. SMTP non è configurato, la richiesta è registrata sul server ma non inviata via email.');
+      } else {
+        alert('Richiesta di assistenza inviata con successo.');
+      }
+    } catch (err) {
+      console.error('Assistenza error', err);
+      alert(`Errore durante l\'invio della richiesta: ${err.message}`);
+    }
+  });
+}
+
 if (uploadOverlay) {
   uploadOverlay.addEventListener('click', e => { if (e.target === uploadOverlay) closeUpload(); });
 }
@@ -440,7 +626,7 @@ if (uploadForm) {
       alert('PDF caricato con successo.');
     } catch (err) {
       console.error('Upload error', err);
-      alert(`Errore durante l'upload del PDF: ${err.message}`);
+      alert(`Errore durante l\'upload del PDF: ${err.message}`);
     }
   });
 }
@@ -504,6 +690,7 @@ async function init() {
   initTheme();
   initSplashScreen();
 
+  await loadUserStatus();
   initDragAndDrop();
   updateAdminUI();
   loadDocs();

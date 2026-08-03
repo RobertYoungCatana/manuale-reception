@@ -11,7 +11,29 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Foglio di stile principale -->
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=3">
+  <style>
+    #btnLogin.btn-secondary-pill,
+    #btnAssistance.btn-secondary-pill,
+    .btn-primary-pill,
+    .btn-primary,
+    .btn-file-select {
+      background: #ffffff !important;
+      color: #2563eb !important;
+      border: 1px solid rgba(37,99,235,0.18) !important;
+    }
+    #btnLogin.btn-secondary-pill:hover,
+    #btnAssistance.btn-secondary-pill:hover,
+    .btn-primary-pill:hover,
+    .btn-primary:hover,
+    .btn-secondary-pill:hover,
+    .btn-file-select:hover {
+      background: linear-gradient(180deg, #2563eb, #1e40af) !important;
+      color: #ffffff !important;
+      border-color: transparent !important;
+      transform: translateY(-2px) !important;
+    }
+  </style>
 
   <!-- Libreria Anime.js per lo Splash Screen -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
@@ -44,6 +66,18 @@
       <div class="search-box">
         <input type="text" id="searchInput" placeholder="Cerca procedura o parola chiave..." autocomplete="off">
       </div>
+      <div class="header-actions" style="display:flex; align-items:center; gap:0.5rem;">
+        <button id="btnLogin" class="btn-secondary-pill btn-small btn-icon" aria-label="Accedi">
+          <span class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M12 12c2.7 0 4.9-2.2 4.9-4.9S14.7 2.2 12 2.2 7.1 4.4 7.1 7.1 9.3 12 12 12zm0 2.2c-3.3 0-9.8 1.7-9.8 5v1.7h19.6V19.2c0-3.3-6.5-5-9.8-5z"/>
+            </svg>
+          </span>
+          <span>Accedi</span>
+        </button>
+        <button id="btnLogout" class="btn-link-mono btn-small" style="display:none;">Esci</button>
+        <span id="userBadge" style="display:none; font-size:0.85rem; color:#334155;"></span>
+      </div>
     </header>
 
     <!-- 2. IN BASSO A SINISTRA: Card Procedure PDF -->
@@ -60,6 +94,26 @@
         <button class="btn-link" id="clearSearch">cancella ricerca</button>
       </div>
 
+      <!-- Sezione Assistenza -->
+      <div class="assistance-card" style="padding: 1rem 1.2rem; border-radius: 20px; background: rgba(14, 116, 144, 0.08); border: 1px solid rgba(14, 116, 144, 0.15); margin: 1.5rem 0; display: flex; flex-direction: column; gap: 0.75rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:0.75rem;">
+          <div>
+            <span class="subtitle-mono">ASSISTENZA</span>
+            <h2 style="margin: 0.4rem 0 0; font-size: 1rem;">Richiedi supporto subito</h2>
+          </div>
+          <button id="btnAssistance" class="btn-secondary-pill btn-small btn-icon" aria-label="Richiedi assistenza">
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-2h2v2zm1.1-7.6c-.2.5-.6.9-1.1 1.1-.5.2-.9.5-1 1V12h-2v-.5c0-1 .6-1.8 1.4-2.3.8-.5 1.2-.9 1.2-1.6 0-.8-.7-1.4-1.6-1.4S10 6.3 10 7H8c0-1.7 1.4-3 3-3s3 1.3 3 3c0 .9-.3 1.6-.9 2.4z"/>
+              </svg>
+            </span>
+            <span>Richiedi assistenza</span>
+          </button>
+        </div>
+        <p style="margin: 0; color: #334155; font-size: 0.95rem; line-height:1.5;">Hai problemi ad aprire un PDF o vuoi segnalare un errore? Invia una richiesta e il problema verrà risolto il prima possibile.</p>
+        <p style="margin: 0; color: #475569; font-size: 0.9rem;">Nota: per inviare la richiesta, effettua prima il login con il pulsante in alto.</p>
+      </div>
+
       <!-- Sezione Preferiti -->
       <div id="favoritesSection" style="display: none; margin-bottom: 2rem;">
         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.8rem;">
@@ -73,13 +127,15 @@
       </div>
 
       <!-- Lista Completa Procedure -->
-      <div id="proceduresList" class="procedures-grid"></div>
+      <div class="procedures-scroll">
+        <div id="proceduresList" class="procedures-grid"></div>
+      </div>
 
       <!-- Footer Card: Tasti Azione (Area Admin + Aggiungi PDF per admin) -->
       <div class="card-footer-action">
           <button id="btnAddPdf" class="btn-primary-pill">
-          + Aggiungi Nuovo PDF
-        </button>
+            + Aggiungi Nuovo PDF
+          </button>
       </div>
     </section>
 
@@ -104,6 +160,30 @@
   </main>
 
   <!-- MODALE ANTEPRIMA PDF -->
+  <div id="loginOverlay" class="overlay" style="display: none;">
+    <div class="modal">
+      <h2 style="margin-bottom: 1rem; color: var(--text-dark);">Accesso Utente</h2>
+      <form id="loginForm">
+        <div style="margin-bottom: 1rem;">
+          <label class="input-label">Email</label>
+          <input type="email" id="loginEmail" required class="admin-input" placeholder="es. maria@esempio.com">
+        </div>
+        <div id="loginStatus" class="status-message" style="margin-bottom:1rem; display:block; color:#334155;"></div>
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+          <button type="button" id="btnCancelLogin" class="btn-link-mono">Annulla</button>
+          <button type="submit" class="btn-primary-pill btn-icon">
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M12 12c2.7 0 4.9-2.2 4.9-4.9S14.7 2.2 12 2.2 7.1 4.4 7.1 7.1 9.3 12 12 12zm0 2.2c-3.3 0-9.8 1.7-9.8 5v1.7h19.6V19.2c0-3.3-6.5-5-9.8-5z"/>
+              </svg>
+            </span>
+            <span>Accedi</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="overlay" id="pdfOverlay" style="display: none;">
     <div class="modal pdf-modal">
       <div class="pdf-modal-header">
@@ -157,6 +237,48 @@
       </form>
     </div>
   </div>
+
+  <!-- MODALE ASSISTENZA -->
+  <div id="assistanceOverlay" class="overlay" style="display: none;">
+    <div class="modal">
+      <h2 style="margin-bottom: 1rem; color: var(--text-dark);">Richiesta Assistenza</h2>
+      <form id="assistanceForm">
+        <div style="margin-bottom: 1rem;">
+          <label class="input-label">Nome (opzionale)</label>
+          <input type="text" id="assistanceName" class="admin-input" placeholder="Es. Maria Rossi">
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label class="input-label">Email (opzionale)</label>
+          <input type="email" id="assistanceEmail" class="admin-input" placeholder="Es. maria@esempio.com">
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label class="input-label">Soggetto</label>
+          <input type="text" id="assistanceSubject" required class="admin-input" placeholder="Es. Errore apertura PDF">
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label class="input-label">Messaggio</label>
+          <textarea id="assistanceMessage" required class="admin-input" rows="5" placeholder="Descrivi cosa non funziona..."></textarea>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label class="input-label">Contesto errore (opzionale)</label>
+          <textarea id="assistanceErrorContext" class="admin-input" rows="3" placeholder="Es. URL, azione precedente, messaggio di errore..."></textarea>
+        </div>
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+          <button type="button" id="btnCancelAssistance" class="btn-link-mono">Annulla</button>
+          <button type="submit" class="btn-primary-pill">Invia Richiesta</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer Crediti Sito -->
+  <footer class="site-credits">
+    <img src="logo.png" alt="Logo blu" class="site-credit-logo">
+    <div class="site-credit-text">
+      <span class="site-credit-slogan">IDEE UMANE POTENZA AI</span>
+      <span class="site-credit-note">Web App sviluppata da Patriche Robert Cosmin</span>
+    </div>
+  </footer>
 
   <!-- Script di Sfondo e Applicazione -->
   <script src="bg.js"></script>
@@ -212,9 +334,10 @@
   </div>
 
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js');
-    }
+    // Service worker temporarily disabled to ensure updated CSS/JS loads correctly.
+    // if ('serviceWorker' in navigator) {
+    //   navigator.serviceWorker.register('/sw.js');
+    // }
   </script>
 </body>
 </html>

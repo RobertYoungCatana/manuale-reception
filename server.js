@@ -5,6 +5,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 const multer = require('multer');
+const nodemailer = require('nodemailer');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { PDFParse } = require('pdf-parse');
@@ -44,12 +45,32 @@ const cloudinaryConfig = {
 };
 const useCloudinary = cloudinaryConfig.cloud_name && cloudinaryConfig.api_key && cloudinaryConfig.api_secret;
 
+const supportEmail = loadEnvVar('SUPPORT_EMAIL') || 'robertpatriche5@gmail.com';
+const smtpHost = loadEnvVar('SMTP_HOST');
+const smtpPort = parseInt(loadEnvVar('SMTP_PORT') || '587', 10);
+const smtpUser = loadEnvVar('SMTP_USER');
+const smtpPass = loadEnvVar('SMTP_PASS');
+const smtpSecure = loadEnvVar('SMTP_SECURE') === 'true';
+
 if (useCloudinary) {
   cloudinary.config(cloudinaryConfig);
 }
 
 if (!fs.existsSync(path.join(__dirname, 'uploads'))) {
   fs.mkdirSync(path.join(__dirname, 'uploads'), { recursive: true });
+}
+
+function createSmtpTransport() {
+  if (!smtpHost || !smtpUser || !smtpPass) return null;
+  return nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpSecure,
+    auth: {
+      user: smtpUser,
+      pass: smtpPass
+    }
+  });
 }
 
 const storage = useCloudinary
@@ -125,33 +146,99 @@ app.get('/api/admin/status', (req, res) => {
   res.json({ isAdmin: req.cookies.admin_session === SESSION_TOKEN });
 });
 
-app.get('/api/procedures', (req, res) => {
-  const db = readDb();
+function isValidEmail(email) {
+  return typeof email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
 
-  // If DB is empty and Cloudinary is configured, try to list files from Cloudinary
-  if ((!db || db.length === 0) && useCloudinary && typeof cloudinary.api !== 'undefined') {
-    (async () => {
-      try {
-        const info = await cloudinary.api.resources({ resource_type: 'raw', prefix: 'manuali_hotel', max_results: 500 });
-        const items = (info.resources || []).map(r => ({
-          id: r.public_id,
-          title: r.original_filename ? `${r.original_filename}.${r.format || 'pdf'}` : r.public_id.split('/').pop(),
-          keywords: [],
-          pdfUrl: r.secure_url || r.url,
-          filename: r.public_id,
-          originalName: r.original_filename ? `${r.original_filename}.${r.format || 'pdf'}` : (r.format ? `${r.public_id.split('/').pop()}.${r.format}` : r.public_id),
-          uploadedAt: r.created_at ? Date.parse(r.created_at) : Date.now()
-        }));
-        return res.json(items);
-      } catch (err) {
-        console.warn('Cloudinary list fallback failed:', err.message);
-        return res.json(db.map(({ text, ...rest }) => rest));
-      }
-    })();
-    return;
+app.post('/api/user/login', (req, res) => {
+  const email = String(req.body.email || '').trim().toLowerCase();
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ error: 'Inserisci un indirizzo email valido.' });
+  }
+  res.cookie('user_session', email, {
+    httpOnly: false,
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  });
+  res.json({ ok: true, email });
+});
+
+app.post('/api/user/logout', (req, res) => {
+  res.clearCookie('user_session');
+  res.json({ ok: true });
+});
+
+app.get('/api/user/status', (req, res) => {
+  const email = String(req.cookies.user_session || '').trim();
+  res.json({ loggedIn: !!email, email: email || null });
+});
+
+app.post('/api/assistance', async (req, res) => {
+  const sessionEmail = String(req.cookies.user_session || '').trim();
+  const { name, subject, message, errorContext } = req.body || {};
+  const email = sessionEmail || String(req.body.email || '').trim();
+
+  const debugEntry = {
+    timestamp: new Date().toISOString(),
+    sessionEmail,
+    bodyEmail: String(req.body?.email || '').trim(),
+    name,
+    subject,
+    message,
+    errorContext,
+    email,
+    smtpHost,
+    smtpPort,
+    smtpUser: smtpUser ? smtpUser.replace(/.(?=.{4})/g, '*') : undefined,
+    smtpSecure,
+    supportEmail
+  };
+  fs.appendFileSync(path.join(__dirname, 'assistance-debug.log'), JSON.stringify({ debugEntry }) + '\n');
+
+  if (!subject || !message) {
+    return res.status(400).json({ error: 'Compila soggetto e messaggio.' });
   }
 
-  res.json(db.map(({ text, ...rest }) => rest));
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ error: 'Email utente non valida o non disponibile. Effettua il login con un indirizzo email valido.' });
+  }
+
+  const transporter = createSmtpTransport();
+  const bodyText = [
+    `Nome: ${name || 'Non fornito'}`,
+    `Email: ${email}`,
+    `Soggetto: ${subject}`,
+    '',
+    message,
+    '',
+    `Contesto errore: ${errorContext || 'Nessuno'}`
+  ].join('\n');
+
+  try {
+    if (transporter) {
+      fs.appendFileSync(path.join(__dirname, 'assistance-debug.log'), JSON.stringify({ smtpPhase: 'verify-start' }) + '\n');
+      await transporter.verify();
+      fs.appendFileSync(path.join(__dirname, 'assistance-debug.log'), JSON.stringify({ smtpPhase: 'verify-success' }) + '\n');
+      const info = await transporter.sendMail({
+        from: `Manuale Reception <${smtpUser}>`,
+        to: supportEmail,
+        subject: `[ASSISTENZA] ${subject}`,
+        text: bodyText,
+        replyTo: email
+      });
+      fs.appendFileSync(path.join(__dirname, 'assistance-debug.log'), JSON.stringify({ smtpPhase: 'send-success', messageId: info.messageId, accepted: info.accepted, rejected: info.rejected }) + '\n');
+    } else {
+      fs.appendFileSync(path.join(__dirname, 'assistance-debug.log'), JSON.stringify({ smtpPhase: 'not-configured' }) + '\n');
+      console.warn('SMTP non configurato: assistenza ricevuta ma non inviata via email.', { email, subject, bodyText });
+    }
+
+    return res.json({ ok: true, smtpAvailable: !!transporter });
+  } catch (err) {
+    fs.appendFileSync(path.join(__dirname, 'assistance-debug.log'), JSON.stringify({ smtpPhase: 'error', error: err && err.message ? err.message : String(err) }) + '\n');
+    console.error('Assistance mail error:', err);
+    const responseError = process.env.DEBUG_SMTP === 'true' ? String(err.message || err) : 'Impossibile inviare l\'email di assistenza.';
+    return res.status(500).json({ error: responseError });
+  }
 });
 
 app.get('/api/search', (req, res) => {
@@ -175,6 +262,12 @@ app.get('/api/search', (req, res) => {
   }).filter(x => x.score > 0).sort((a, b) => b.score - a.score);
 
   res.json(scored.map(x => { const { text, ...rest } = x.proc; return rest; }));
+});
+
+app.get('/api/procedures', (req, res) => {
+  const db = readDb();
+  const docs = db.map(({ text, ...rest }) => rest);
+  res.json(docs);
 });
 
 app.get('/api/procedures/:id/pdf', async (req, res) => {
