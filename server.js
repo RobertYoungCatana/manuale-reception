@@ -52,6 +52,14 @@ const smtpUser = loadEnvVar('SMTP_USER');
 const smtpPass = loadEnvVar('SMTP_PASS');
 const smtpSecure = loadEnvVar('SMTP_SECURE') === 'true';
 
+console.log('SMTP status:', {
+  host: smtpHost ? smtpHost : 'MISSING',
+  port: smtpPort,
+  user: smtpUser ? smtpUser.replace(/.(?=.{4})/g, '*') : 'MISSING',
+  secure: smtpSecure,
+  supportEmail
+});
+
 if (useCloudinary) {
   cloudinary.config(cloudinaryConfig);
 }
@@ -122,6 +130,18 @@ function requireAdmin(req, res, next) {
 
 app.get('/api/ping', (req, res) => {
   res.json({ ok: true, procedure: readDb().length });
+});
+
+app.get('/api/debug-smtp', (req, res) => {
+  const transporter = createSmtpTransport();
+  return res.json({
+    smtpConfigured: !!transporter,
+    smtpHost: smtpHost || null,
+    smtpUser: smtpUser ? smtpUser.replace(/.(?=.{4})/g, '*') : null,
+    smtpSecure,
+    supportEmail,
+    smtpPort
+  });
 });
 
 app.post('/api/admin/login', (req, res) => {

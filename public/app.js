@@ -588,7 +588,7 @@ if (assistanceForm) {
 
       closeAssistance();
       if (data && data.smtpAvailable === false) {
-        alert('Richiesta ricevuta. SMTP non è configurato, la richiesta è registrata sul server ma non inviata via email.');
+        alert('Richiesta ricevuta. Al momento l\'invio email non è disponibile perché SMTP non è configurato. La richiesta è stata registrata sul server e sarà gestita manualmente.');
       } else {
         alert('Richiesta di assistenza inviata con successo.');
       }
