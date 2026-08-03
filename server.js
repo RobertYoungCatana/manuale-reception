@@ -77,7 +77,10 @@ function createSmtpTransport() {
     auth: {
       user: smtpUser,
       pass: smtpPass
-    }
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000
   });
 }
 
@@ -236,9 +239,6 @@ app.post('/api/assistance', async (req, res) => {
 
   try {
     if (transporter) {
-      fs.appendFileSync(path.join(__dirname, 'assistance-debug.log'), JSON.stringify({ smtpPhase: 'verify-start' }) + '\n');
-      await transporter.verify();
-      fs.appendFileSync(path.join(__dirname, 'assistance-debug.log'), JSON.stringify({ smtpPhase: 'verify-success' }) + '\n');
       const info = await transporter.sendMail({
         from: `Manuale Reception <${smtpUser}>`,
         to: supportEmail,

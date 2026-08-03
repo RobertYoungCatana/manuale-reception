@@ -568,6 +568,17 @@ if (assistanceForm) {
       return;
     }
 
+    const assistanceStatus = document.getElementById('assistanceStatus');
+    const submitAssistanceBtn = document.getElementById('btnSubmitAssistance');
+    if (submitAssistanceBtn) {
+      submitAssistanceBtn.disabled = true;
+      submitAssistanceBtn.textContent = 'Invio...';
+    }
+    if (assistanceStatus) {
+      assistanceStatus.textContent = 'Invio richiesta in corso...';
+      assistanceStatus.style.display = 'block';
+    }
+
     try {
       const res = await fetch('/api/assistance', {
         method: 'POST',
@@ -580,6 +591,14 @@ if (assistanceForm) {
         throw new Error(data?.error || `Errore invio assistenza (${res.status})`);
       }
 
+      if (assistanceStatus) {
+        assistanceStatus.textContent = 'Richiesta inviata con successo.';
+      }
+      if (assistanceStatus) {
+        setTimeout(() => {
+          if (assistanceStatus) assistanceStatus.style.display = 'none';
+        }, 3000);
+      }
       closeAssistance();
       if (data && data.smtpAvailable === false) {
         alert('Richiesta ricevuta. Al momento l\'invio email non è disponibile perché SMTP non è configurato. La richiesta è stata registrata sul server e sarà gestita manualmente.');
@@ -588,7 +607,16 @@ if (assistanceForm) {
       }
     } catch (err) {
       console.error('Assistenza error', err);
+      if (assistanceStatus) {
+        assistanceStatus.textContent = `Errore durante l\'invio della richiesta: ${err.message}`;
+        assistanceStatus.style.display = 'block';
+      }
       alert(`Errore durante l\'invio della richiesta: ${err.message}`);
+    } finally {
+      if (submitAssistanceBtn) {
+        submitAssistanceBtn.disabled = false;
+        submitAssistanceBtn.textContent = 'Invia Richiesta';
+      }
     }
   });
 }

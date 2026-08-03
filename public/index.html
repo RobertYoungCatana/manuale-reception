@@ -268,9 +268,10 @@
           <label class="input-label">Contesto errore (opzionale)</label>
           <textarea id="assistanceErrorContext" class="admin-input" rows="3" placeholder="Es. URL, azione precedente, messaggio di errore..."></textarea>
         </div>
+        <div id="assistanceStatus" style="margin-bottom: 1rem; color: #334155; font-size: 0.95rem; display: none;">Invio richiesta in corso...</div>
         <div style="display: flex; gap: 1rem; justify-content: flex-end;">
           <button type="button" id="btnCancelAssistance" class="btn-link-mono">Annulla</button>
-          <button type="submit" class="btn-primary-pill">Invia Richiesta</button>
+          <button type="submit" id="btnSubmitAssistance" class="btn-primary-pill">Invia Richiesta</button>
         </div>
       </form>
     </div>
